@@ -1,4 +1,4 @@
-# SW403 RAG System - Prototype Comparison (P1 vs P2)
+# SW403 RAG System - Prototype Comparison
 # Docker-Based Flexible Prototypes
 
 All prototypes (P1, P2, and future versions) run in separate Docker containers, inheriting from a shared base image. This enables flexible switching and isolated development for each approach.
