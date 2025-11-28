@@ -403,7 +403,7 @@ def create_vector_store(host: str = "localhost", port: int = 6333, storage_path:
     Create a new QdrantVectorStore instance.
     
     Args:
-        host: Qdrant server host (default: localhost for Docker)
+        host: Qdrant server host (default: uses QDRANT_HOST env or 'qdrant' for Docker)
         port: Qdrant server port (default: 6333 for Docker)
         storage_path: Local file storage path. If provided, uses local storage instead of Docker.
         collection_name: Custom collection name. If None, uses default.
@@ -411,4 +411,6 @@ def create_vector_store(host: str = "localhost", port: int = 6333, storage_path:
     Returns:
         QdrantVectorStore instance configured for Docker or local storage
     """
-    return QdrantVectorStore(host=host, port=port, storage_path=storage_path, collection_name=collection_name)
+    import os
+    resolved_host = os.environ.get("QDRANT_HOST", "qdrant") if host == "localhost" else host
+    return QdrantVectorStore(host=resolved_host, port=port, storage_path=storage_path, collection_name=collection_name)
