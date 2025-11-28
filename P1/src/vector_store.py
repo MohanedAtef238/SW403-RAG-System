@@ -34,17 +34,26 @@ class VectorStoreMetrics:
 
 class QdrantVectorStore:
     """Qdrant vector store with performance monitoring."""
-    
-    def __init__(self, host: str = "localhost", port: int = 6333, storage_path: Optional[str] = None, collection_name: Optional[str] = None):
+    def __init__(self, host: Optional[str] = None, port: Optional[int] = None, storage_path: Optional[str] = None, collection_name: Optional[str] = None):
+        logger.info(f"Qdrant host: {host}, port: {port}")
+        if host is None:
+            raise ValueError("QDRANT_HOST environment variable must be set. Current value: None")
+    def __init__(self, host: Optional[str] = None, port: Optional[int] = None, storage_path: Optional[str] = None, collection_name: Optional[str] = None):
         """
         Initialize Qdrant client.
         
         Args:
             host: Qdrant server host (for Docker/server mode)
-            port: Qdrant server port (for Docker/server mode) 
+            port: Qdrant server port (for Docker/server mode)
             storage_path: Local file storage path (for embedded mode). If None, uses Docker/server mode.
             collection_name: Custom collection name. If None, uses default.
         """
+        import os
+        if host is None:
+            host = os.getenv("QDRANT_HOST")
+        if port is None:
+            port_env = os.getenv("QDRANT_PORT")
+            port = int(port_env) if port_env is not None else None
         if storage_path:
             # Local file storage mode
             self.client = QdrantClient(path=storage_path)

@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   base:
     build:
@@ -21,6 +19,11 @@ services:
       - qdrant_storage:/qdrant/storage
     networks:
       - sw403-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/collections || exit 1"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
 
   p1:
     build:
