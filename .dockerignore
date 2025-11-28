@@ -1,0 +1,75 @@
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+.eggs/
+*.dist-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# --- IDE / Editor ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- OS / Filesystem ---
+.DS_Store
+Thumbs.db
+
+# --- Git ---
+.git/
+.gitignore
+
+# --- Logs / Temporary Files ---
+*.log
+*.tmp
+*.out
+*.bak
+
+# --- Docker ---
+Dockerfile*~
+docker-compose*~
+*.tar
+
+# --- Build artifacts ---
+build/
+dist/
+*.whl
+
+# --- Project-specific ---
+# Shared data should NOT go into the image; only mounted as a volume
+shared_data/
+
+# Qdrant persistent storage
+qdrant_storage/
+
+# --- Root files that should NOT be copied into base image ---
+deploy.sh
+
+# Ignore everything in P1/P2 except their src and main files (keeps context small)
+P1/.venv/
+P1/**/*.log
+P1/build/
+P1/dist/
+
+P2/.venv/
+P2/**/*.log
+P2/build/
+P2/dist/
+
+# uv cache
+.uv/
+.uv_cache/
+
+# Node junk (if any)
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log

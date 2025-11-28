@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  base:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sw403-base
+    container_name: sw403-base
+    networks:
+      - sw403-net
+    command: ["sleep", "infinity"]
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - "6333:6333"   # REST
+      - "6334:6334"   # gRPC for future use
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    networks:
+      - sw403-net
+
+  p1:
+    build:
+      context: ./P1
+      dockerfile: Dockerfile
+    container_name: sw403-p1
+    depends_on:
+      - qdrant
+      - base
+    environment:
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+    volumes:
+      - ./shared_data:/app/shared_data
+    ports:
+      - "8001:8001"
+    networks:
+      - sw403-net
+
+  p2:
+    build:
+      context: ./P2
+      dockerfile: Dockerfile
+    container_name: sw403-p2
+    depends_on:
+      - qdrant
+      - base
+    environment:
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+    volumes:
+      - ./shared_data:/app/shared_data
+    ports:
+      - "8002:8002"
+    networks:
+      - sw403-net
+
+networks:
+  sw403-net:
+
+volumes:
+  qdrant_storage:
