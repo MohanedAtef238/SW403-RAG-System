@@ -1,0 +1,10 @@
+
+[project]
+name = "sw403-p1"
+version = "0.1.0"
+description = "SW 403 RAG System - Prototype 1 (P1) Function-level RAG with Qdrant"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # Add any P1-specific dependencies here
+]
