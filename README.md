@@ -1,4 +1,8 @@
 # SW403 RAG System - Prototype Comparison (P1 vs P2)
+# Docker-Based Flexible Prototypes
+
+All prototypes (P1, P2, and future versions) run in separate Docker containers, inheriting from a shared base image. This enables flexible switching and isolated development for each approach.
+
 
 A comprehensive RAG system implementing two distinct chunking approaches for codebase analysis. This system enables direct comparison between baseline text-based chunking (P1) and advanced AST-based semantic chunking (P2) using Qdrant vector storage and comprehensive performance metrics.
 
@@ -17,6 +21,12 @@ A comprehensive RAG system implementing two distinct chunking approaches for cod
 - **Use Case**: Enhanced semantic understanding
 
 ## Features
+### Flexible Prototype Switching & Containerization
+
+- **Separate Docker Containers**: Each prototype (P1, P2, etc.) runs in its own container for isolation and easy comparison.
+- **Base Image Inheritance**: All prototypes inherit from a common `sw403-base` image, ensuring consistent dependencies and fast builds.
+- **Flexible Switching**: You can select which prototype to run or compare via CLI flags and Docker Compose configuration.
+
 
 ### Dual Prototype Architecture
 
@@ -56,51 +66,28 @@ A comprehensive RAG system implementing two distinct chunking approaches for cod
 
 ## Quick Start
 
-### 1. Install Dependencies & Start Qdrant
+### 1. Build the Base Image
 
 ```bash
-# Install Python dependencies
-uv sync
-
-# Start Qdrant Docker container (required)
-docker run -p 6333:6333 qdrant/qdrant
-# Or restart existing container: docker start <container_name>
+docker build -t sw403-base .
 ```
 
-### 2. Compare Prototypes
+### 2. Start All Services with Docker Compose
 
 ```bash
-# Compare P1 vs P2 chunking approaches
-uv run python main.py compare src/models.py src/api.py
+docker compose up --build
 ```
 
-### 3. Ingest Data (Choose Prototype)
+This will automatically build and start the base image, Qdrant, and all prototypes (P1, P2, etc.) in separate containers. Each prototype inherits from the base image for consistent environments.
 
-```bash
-# Ingest with P1 (baseline text-based)
-uv run python main.py ingest src/*.py --prototype P1 --recreate
+### 3. Access and Compare Prototypes
 
-# Ingest with P2 (AST-based semantic)
-uv run python main.py ingest src/*.py --prototype P2 --recreate
-```
+- P1 API: [http://localhost:8001/docs](http://localhost:8001/docs)
+- P2 API: [http://localhost:8002/docs](http://localhost:8002/docs)
 
-### 4. Search & Compare Results
+You can ingest, search, and compare results using the CLI or API endpoints for each prototype. Use the CLI flags or API parameters to select which prototype to use.
 
-```bash
-# Search P1 collection
-uv run python main.py search "model initialization" --prototype P1 --top-k 3
-
-# Search P2 collection  
-uv run python main.py search "model initialization" --prototype P2 --top-k 3
-```
-
-### 5. Start API Server
-
-```bash
-# Start FastAPI server with all endpoints
-uv run python main.py serve
-# API docs: http://localhost:8000/docs
-```
+Future prototypes can be added by creating a new Dockerfile that inherits from `sw403-base` and updating the Compose file.
 
 ## API Usage Examples
 
@@ -205,23 +192,10 @@ P2 found: 8 functions
 Agreement: 100.0%
 ```
 
-### Interpreting Results
-
-- **100% Agreement**: Both find identical functions (ideal)
-- **Only P1 found**: P1's regex caught something P2's AST missed (investigate)
-- **Only P2 found**: P2's semantic parsing found valid functions P1 missed (expected)
-- **Low Agreement**: Fundamental chunking differences (needs investigation)
-
-### Research Use Cases
-
-1. **Baseline Validation**: Prove P1 captures obvious functions correctly
-2. **P2 Superiority**: Show P2 finds functions P1 misses (complex signatures, decorators)
-3. **Edge Case Discovery**: Find where simple regex fails vs AST parsing
-4. **Consistency Check**: Ensure both prototypes work on your test corpus
-
 ## API Documentation
 
-Interactive API docs available at: `http://localhost:8000/docs`
+- Interactive API docs available at: `http://localhost:8001/docs` for P1
+- Interactive API docs available at: `http://localhost:8002/docs` for P2
 
 ### Standard API Endpoints
 
@@ -318,16 +292,6 @@ services:
     environment:
       - QDRANT_HOST=qdrant
 ```
-
-## Notes
-
-- **Prototype Independence**: P1 and P2 use separate collections, no data mixing
-- **Cross-Compatibility**: Search works across both prototypes despite different chunk formats  
-- **Performance**: P1 focuses on speed, P2 on semantic accuracy
-- **Research Ready**: Compare command provides quantitative evaluation framework
-- **Docker Ready**: All functionality available via API for containerized environments
-│   Chunking      │    │   Tracking       │    │    line numbers)│
-└─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
 ## Performance Metrics
@@ -374,7 +338,6 @@ sw403/
 │   ├── models.py           # Embedding model management
 │   ├── chunking.py         # AST-based function extraction
 │   └── vector_store.py     # Qdrant operations
-├── qdrant_storage/         # Vector database files
 └── pyproject.toml          # Dependencies and config
 ```
 
