@@ -123,17 +123,16 @@ class QueryRequest(BaseModel):
     function_name_filter: Optional[str] = Field(None, description="Filter results by function name")
 
 
+
 class FunctionResult(BaseModel):
-    """Individual function result."""
+    """Individual function result (baseline)."""
     function_name: str
     function_signature: str
     file_path: str
-    relative_path: str
     line_numbers: Dict[str, int]
     original_chunk_text: str
     docstring: Optional[str]
     similarity_score: float
-    metadata: Dict[str, Any]
 
 
 class QueryResponse(BaseModel):
@@ -288,6 +287,7 @@ async def query_code(request: QueryRequest):
             function_name_filter=request.function_name_filter
         )
         
+
         # Format results
         formatted_results = []
         for result in search_results:
@@ -296,12 +296,10 @@ async def query_code(request: QueryRequest):
                 function_name=payload["function_name"],
                 function_signature=payload["function_signature"],
                 file_path=payload["file_path"],
-                relative_path=payload["relative_path"],
                 line_numbers=payload["line_numbers"],
                 original_chunk_text=payload["original_chunk_text"],
-                docstring=payload.get("metadata", {}).get("docstring"),
-                similarity_score=result["similarity_score"],
-                metadata=payload.get("metadata", {})
+                docstring=payload.get("docstring"),
+                similarity_score=result["similarity_score"]
             )
             formatted_results.append(function_result)
         

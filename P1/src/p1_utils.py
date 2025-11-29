@@ -4,23 +4,20 @@ Creates type union for P1 and P2 chunk compatibility.
 """
 
 from typing import Union, List, Protocol, Sequence, Any
-from .chunking import FunctionChunk  
-from .chunking_p1 import P1FunctionChunk
+from .chunking import FunctionChunk
 import numpy as np
 
-# Protocol for chunk compatibility
+
+# Protocol for chunk compatibility (now only FunctionChunk for P1)
 class ChunkProtocol(Protocol):
-    """Protocol that both P1 and P2 chunks must implement."""
     file_path: str
     function_name: str
     start_line: int
-    
     def to_payload(self) -> dict:
-        """Convert chunk to payload format."""
         ...
 
-# Type alias for chunk union
-ChunkType = Union[FunctionChunk, P1FunctionChunk]
+# Type alias for chunk (only FunctionChunk)
+ChunkType = FunctionChunk
 
 def create_chunk_compatible_vector_store(collection_name: str = "functions_p1"):
     """Create vector store that accepts both P1 and P2 chunks."""

@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from src.api import app
 from src.models import initialize_model, get_model_info
-from src.chunking_p1 import P1TextChunker
+from src.chunking import CodeChunker
 from src.p1_utils import create_chunk_compatible_vector_store
 
 
@@ -67,7 +67,7 @@ async def _ingest(files: List[str], recreate: bool):
     # Initialize components
     initialize_model()
     vector_store = create_chunk_compatible_vector_store(collection_name="functions_p1")
-    chunker = P1TextChunker()
+    chunker = CodeChunker()
     
     if recreate:
         print("Recreating collection...")
@@ -207,7 +207,7 @@ async def _test():
         
         # Test 3: Chunking capability
         print("3. Testing P1 chunking capability...")
-        chunker = P1TextChunker()
+        chunker = CodeChunker()
         
         # Create a test file
         test_content = '''def test_function():

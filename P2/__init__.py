@@ -1,5 +1,5 @@
 """
-SW403 P1 RAG System - Main entry point and CLI utilities.
+SW403 P2 RAG System - Main entry point and CLI utilities.
 """
 
 import sys
@@ -15,7 +15,7 @@ from src.api import app
 def main():
     """Main entry point for development."""
     import uvicorn
-    print("Starting SW403 P1 RAG System...")
+    print("Starting SW403 P2 RAG System...")
     print("API Documentation: http://localhost:8000/docs")
     print("Health Check: http://localhost:8000/health")
     

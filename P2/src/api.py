@@ -1,6 +1,6 @@
 """
 FastAPI application with comprehensive performance metrics.
-Provides /ingest and /query endpoints for the P1 RAG system.
+Provides /ingest and /query endpoints for the P2 RAG system.
 """
 
 import time
@@ -158,7 +158,7 @@ async def startup_event():
     """Initialize models and services on startup."""
     global chunker, vector_store
     
-    logger.info("Initializing P1 RAG system...")
+    logger.info("Initializing P2 RAG system...")
     
     try:
         # Initialize embedding model (this caches it in memory)
@@ -173,10 +173,10 @@ async def startup_event():
         logger.info("Initializing vector store...")
         vector_store = create_vector_store()
         
-        logger.info("P1 RAG system initialized successfully!")
+        logger.info("P2 RAG system initialized successfully!")
         
     except Exception as e:
-        logger.error(f"Failed to initialize P1 RAG system: {e}")
+        logger.error(f"Failed to initialize P2 RAG system: {e}")
         raise
 
 
