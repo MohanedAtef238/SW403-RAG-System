@@ -10,6 +10,4 @@ EXPOSE 8003
 ENV PYTHONPATH=/app
 ENV base_server="https://api.groq.com/openai/v1"
 
-RUN [ "uv","run", "python","./P3/src/rag.py" ]
-
 CMD ["uv", "run", "python", "main.py", "serve", "--host", "0.0.0.0", "--port", "8003"]

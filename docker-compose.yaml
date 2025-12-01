@@ -46,6 +46,22 @@ services:
       timeout: 2s
       retries: 10
 
+  qdrant-p3:
+    image: qdrant/qdrant:latest
+    container_name: qdrant-p3
+    ports:
+      - "8333:6333"   # REST for P3 (host 8333 -> container 6333)
+      - "8334:6334"   # gRPC for future use
+    volumes:
+      - qdrant_storage_p3:/qdrant/storage
+    networks:
+      - sw403-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/collections || exit 1"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+
   p1:
     build:
       context: ./P1
@@ -134,7 +150,6 @@ services:
         limits:
           memory: ${MEMORY_LIMIT:-4g}
   p3:
-      
     build:
       context: ./P3
       dockerfile: Dockerfile
@@ -145,12 +160,10 @@ services:
           target: /app/P3
     container_name: sw403-p3
     depends_on:
-      - qdrant
-      - base
+      - qdrant-p3
     environment:
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      QDRANT_HOST: qdrant
-      QDRANT_PORT: 6333
+      QDRANT_HOST: ${P3_QDRANT_HOST:-qdrant-p3}
+      QDRANT_PORT: ${P3_QDRANT_PORT:-6333}
     volumes:
       - ./shared_data:/app/shared_data
     ports:
@@ -160,7 +173,7 @@ services:
 
 networks:
   sw403-net:
-
 volumes:
   qdrant_storage_p1:
   qdrant_storage_p2:
+  qdrant_storage_p3:
