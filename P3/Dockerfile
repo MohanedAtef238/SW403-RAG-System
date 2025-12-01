@@ -9,7 +9,6 @@ EXPOSE 8003
 
 ENV PYTHONPATH=/app
 ENV base_server="https://api.groq.com/openai/v1"
-ENV OPENAI_API_KEY="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"
 
 RUN [ "uv","run", "python","./P3/src/rag.py" ]
 
