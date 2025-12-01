@@ -2,7 +2,6 @@ FROM sw403-base
 
 WORKDIR /app
 
-# Copy only P1 application code
 COPY src/ ./src/
 COPY main.py ./main.py
 

@@ -41,6 +41,7 @@ class FunctionChunk:
         self.ast_node_type = ast_node_type
         self.complexity_score = complexity_score
         self.file_extension = Path(file_path).suffix
+        self.chunk_type = "function"  # Identifier for vector store
     
     def _get_relative_path(self, file_path: str) -> str:
         """Get project-relative path."""
@@ -63,6 +64,7 @@ class FunctionChunk:
             },
             "function_name": self.function_name,
             "original_chunk_text": self.original_chunk_text,
+            "chunk_type": self.chunk_type,
             "metadata": {
                 "file_extension": self.file_extension,
                 "ast_node_type": self.ast_node_type,
@@ -72,15 +74,163 @@ class FunctionChunk:
             }
         }
     
+    def get_enhanced_embedding_text(self) -> str:
+        """Generate enhanced text for embeddings using AST metadata.
+        
+        Combines function code with semantic context:
+        - Decorators (e.g., @staticmethod, @property)
+        - Function signature with type hints
+        - Docstring (if present)
+        - Complexity hint
+        - Original code
+        
+        This gives the embedding model more semantic context than raw code alone.
+        """
+        parts = []
+        
+        # Add decorators as semantic hints
+        if self.decorators:
+            parts.append("Decorators: " + ", ".join(self.decorators))
+        
+        # Add function signature with full type information
+        parts.append(f"Signature: {self.function_signature}")
+        
+        # Add docstring for semantic understanding
+        if self.docstring:
+            parts.append(f"Documentation: {self.docstring}")
+        
+        # Add complexity as a hint for algorithm understanding
+        if self.complexity_score > 1:
+            parts.append(f"Complexity: {self.complexity_score}")
+        
+        # Add the actual code
+        parts.append(f"Code:\n{self.original_chunk_text}")
+        
+        return "\n".join(parts)
+    
     def __repr__(self) -> str:
         return f"FunctionChunk({self.function_name} @ {self.relative_path}:{self.start_line}-{self.end_line})"
 
 
+class ClassChunk:
+    """Container for a class chunk with comprehensive metadata."""
+    
+    def __init__(
+        self,
+        file_path: str,
+        class_name: str,
+        start_line: int,
+        end_line: int,
+        original_chunk_text: str,
+        docstring: Optional[str] = None,
+        base_classes: Optional[List[str]] = None,
+        decorators: Optional[List[str]] = None,
+        methods: Optional[List[str]] = None,
+        complexity_score: int = 1
+    ):
+        self.file_path = str(Path(file_path).resolve())
+        self.relative_path = self._get_relative_path(file_path)
+        self.class_name = class_name
+        self.start_line = start_line
+        self.end_line = end_line
+        self.original_chunk_text = original_chunk_text
+        self.docstring = docstring
+        self.base_classes = base_classes or []
+        self.decorators = decorators or []
+        self.methods = methods or []
+        self.complexity_score = complexity_score
+        self.file_extension = Path(file_path).suffix
+        self.chunk_type = "class"  # Identifier for vector store
+    
+    def _get_relative_path(self, file_path: str) -> str:
+        """Get project-relative path."""
+        try:
+            return str(Path(file_path).relative_to(Path.cwd()))
+        except ValueError:
+            return Path(file_path).name
+    
+    def to_payload(self) -> Dict[str, Any]:
+        """Convert to Qdrant payload format."""
+        return {
+            "file_path": self.file_path,
+            "relative_path": self.relative_path,
+            "class_name": self.class_name,
+            "function_name": self.class_name,  # For compatibility with queries
+            "line_numbers": {
+                "start": self.start_line,
+                "end": self.end_line
+            },
+            "original_chunk_text": self.original_chunk_text,
+            "chunk_type": self.chunk_type,
+            "metadata": {
+                "file_extension": self.file_extension,
+                "ast_node_type": "class",
+                "complexity_score": self.complexity_score,
+                "docstring": self.docstring,
+                "decorators": self.decorators,
+                "base_classes": self.base_classes,
+                "methods": self.methods,
+                "method_count": len(self.methods)
+            }
+        }
+    
+    def get_enhanced_embedding_text(self) -> str:
+        """Generate enhanced text for embeddings using AST metadata.
+        
+        Combines class definition with semantic context:
+        - Class name
+        - Inheritance (base classes)
+        - Decorators (e.g., @dataclass)
+        - Docstring
+        - List of methods (interface)
+        - Complexity hint
+        
+        This gives the embedding model rich semantic context for class-level queries.
+        """
+        parts = []
+        
+        # Add class identifier
+        parts.append(f"Class: {self.class_name}")
+        
+        # Add inheritance information
+        if self.base_classes:
+            parts.append(f"Inherits from: {', '.join(self.base_classes)}")
+        
+        # Add decorators
+        if self.decorators:
+            parts.append(f"Decorators: {', '.join(self.decorators)}")
+        
+        # Add docstring
+        if self.docstring:
+            parts.append(f"Documentation: {self.docstring}")
+        
+        # Add methods list (interface)
+        if self.methods:
+            parts.append(f"Methods: {', '.join(self.methods)}")
+        
+        # Add complexity
+        if self.complexity_score > 1:
+            parts.append(f"Complexity: {self.complexity_score}")
+        
+        # Add the actual code (truncated for large classes)
+        if len(self.original_chunk_text) > 1000:
+            # For large classes, include definition and summary
+            code_preview = self.original_chunk_text[:500] + "\\n... (class definition continues) ..."
+            parts.append(f"Code:\\n{code_preview}")
+        else:
+            parts.append(f"Code:\\n{self.original_chunk_text}")
+        
+        return "\\n".join(parts)
+    
+    def __repr__(self) -> str:
+        return f"ClassChunk({self.class_name} @ {self.relative_path}:{self.start_line}-{self.end_line})"
+
+
 class CodeChunker:
-    """AST-based code chunker for extracting functions."""
+    """AST-based code chunker for extracting functions and classes."""
     
     def __init__(self):
-        self.chunks: List[FunctionChunk] = []
+        self.chunks: List[FunctionChunk | ClassChunk] = []
     
     def extract_function_signature(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
         """Extract clean function signature from AST node."""
@@ -169,16 +319,61 @@ class CodeChunker:
         
         return complexity
     
-    def chunk_file(self, file_path: str, source_code: Optional[str] = None) -> List[FunctionChunk]:
+    def extract_class_docstring(self, node: ast.ClassDef) -> Optional[str]:
+        """Extract docstring from class node."""
+        if (node.body and 
+            isinstance(node.body[0], ast.Expr) and 
+            isinstance(node.body[0].value, ast.Constant) and 
+            isinstance(node.body[0].value.value, str)):
+            return node.body[0].value.value
+        return None
+    
+    def extract_class_decorators(self, node: ast.ClassDef) -> List[str]:
+        """Extract decorator names from class node."""
+        decorators = []
+        for decorator in node.decorator_list:
+            try:
+                decorators.append(ast.unparse(decorator))
+            except Exception:
+                decorators.append(str(decorator))
+        return decorators
+    
+    def extract_base_classes(self, node: ast.ClassDef) -> List[str]:
+        """Extract base class names."""
+        base_classes = []
+        for base in node.bases:
+            try:
+                base_classes.append(ast.unparse(base))
+            except Exception:
+                base_classes.append(str(base))
+        return base_classes
+    
+    def extract_class_methods(self, node: ast.ClassDef) -> List[str]:
+        """Extract method names from class."""
+        methods = []
+        for item in node.body:
+            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                methods.append(item.name)
+        return methods
+    
+    def calculate_class_complexity(self, node: ast.ClassDef) -> int:
+        """Calculate class complexity (sum of method complexities)."""
+        complexity = 1
+        for item in node.body:
+            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                complexity += self.calculate_complexity(item)
+        return complexity
+    
+    def chunk_file(self, file_path: str, source_code: Optional[str] = None) -> List[FunctionChunk | ClassChunk]:
         """
-        Extract function chunks from a Python file.
+        Extract class and function chunks from a Python file.
         
         Args:
             file_path: Path to the Python file
             source_code: Optional source code string (if not provided, reads from file)
             
         Returns:
-            List of FunctionChunk objects
+            List of FunctionChunk and ClassChunk objects
         """
         try:
             if source_code is None:
@@ -191,7 +386,34 @@ class CodeChunker:
             
             chunks = []
             
-            # Walk through all nodes to find function definitions
+            # First pass: Extract classes at module level
+            for node in tree.body:
+                if isinstance(node, ast.ClassDef):
+                    # Extract class text
+                    start_line = node.lineno
+                    end_line = node.end_lineno if node.end_lineno else start_line
+                    
+                    # Get the actual class text
+                    class_lines = source_lines[start_line-1:end_line]
+                    original_text = '\n'.join(class_lines)
+                    
+                    # Create class chunk
+                    class_chunk = ClassChunk(
+                        file_path=file_path,
+                        class_name=node.name,
+                        start_line=start_line,
+                        end_line=end_line,
+                        original_chunk_text=original_text,
+                        docstring=self.extract_class_docstring(node),
+                        base_classes=self.extract_base_classes(node),
+                        decorators=self.extract_class_decorators(node),
+                        methods=self.extract_class_methods(node),
+                        complexity_score=self.calculate_class_complexity(node)
+                    )
+                    
+                    chunks.append(class_chunk)
+            
+            # Second pass: Extract all functions (both module-level and class methods)
             for node in ast.walk(tree):
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     # Extract function text
@@ -202,7 +424,7 @@ class CodeChunker:
                     function_lines = source_lines[start_line-1:end_line]
                     original_text = '\n'.join(function_lines)
                     
-                    # Create chunk
+                    # Create function chunk
                     chunk = FunctionChunk(
                         file_path=file_path,
                         function_name=node.name,
@@ -218,7 +440,9 @@ class CodeChunker:
                     
                     chunks.append(chunk)
             
-            logger.info(f"Extracted {len(chunks)} functions from {Path(file_path).name}")
+            class_count = sum(1 for c in chunks if isinstance(c, ClassChunk))
+            func_count = sum(1 for c in chunks if isinstance(c, FunctionChunk))
+            logger.info(f"Extracted {class_count} classes and {func_count} functions from {Path(file_path).name}")
             return chunks
             
         except SyntaxError as e:
@@ -228,16 +452,16 @@ class CodeChunker:
             logger.error(f"Error chunking {file_path}: {e}")
             return []
     
-    def chunk_directory(self, directory_path: str, pattern: str = "*.py") -> List[FunctionChunk]:
+    def chunk_directory(self, directory_path: str, pattern: str = "*.py") -> List[FunctionChunk | ClassChunk]:
         """
-        Extract function chunks from all Python files in a directory.
+        Extract class and function chunks from all Python files in a directory.
         
         Args:
             directory_path: Path to directory
             pattern: File pattern to match (default: "*.py")
             
         Returns:
-            List of all FunctionChunk objects from the directory
+            List of all FunctionChunk and ClassChunk objects from the directory
         """
         directory = Path(directory_path)
         all_chunks = []
@@ -260,15 +484,15 @@ class CodeChunker:
         logger.info(f"Extracted {len(all_chunks)} total functions from {len(python_files)} files in {directory_path}")
         return all_chunks
     
-    def chunk_multiple_files(self, file_paths: List[str]) -> List[FunctionChunk]:
+    def chunk_multiple_files(self, file_paths: List[str]) -> List[FunctionChunk | ClassChunk]:
         """
-        Extract function chunks from multiple files.
+        Extract class and function chunks from multiple files.
         
         Args:
             file_paths: List of file paths to process
             
         Returns:
-            List of all FunctionChunk objects
+            List of all FunctionChunk and ClassChunk objects
         """
         all_chunks = []
         

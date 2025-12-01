@@ -89,8 +89,8 @@ async def _ingest(files: List[str], recreate: bool):
     
     if all_chunks:
         print(f"Generating embeddings for {len(all_chunks)} functions...")
-        # Get text content from P2 chunks
-        chunk_texts = [chunk.original_chunk_text for chunk in all_chunks]
+        # Get text content from P2 chunks with enhanced semantic context
+        chunk_texts = [chunk.get_enhanced_embedding_text() for chunk in all_chunks]
         embeddings, metrics = encode_texts(chunk_texts)
         
         print(f"Storing in vector database...")
@@ -255,8 +255,8 @@ class TestClass:
             # Test 4: Vector operations
             if chunks:
                 print("4. Testing vector operations...")
-                # Generate embeddings
-                chunk_texts = [chunk.original_chunk_text for chunk in chunks]
+                # Generate embeddings with enhanced semantic context
+                chunk_texts = [chunk.get_enhanced_embedding_text() for chunk in chunks]
                 embeddings, metrics = encode_texts(chunk_texts)
                 
                 # Store chunks

@@ -12,12 +12,13 @@ from qdrant_client.models import (
     Distance, VectorParams, CreateCollection, PointStruct, 
     Filter, FieldCondition, MatchText
 )
-from .chunking import FunctionChunk
+from .chunking import FunctionChunk, ClassChunk
 
 logger = logging.getLogger(__name__)
 
 # Configuration constants
-COLLECTION_NAME = "function_embeddings"
+COLLECTION_NAME = "functions_p2"  # P2: AST-based chunking
+PROTOTYPE_ID = "p2"
 VECTOR_SIZE = 384  # all-MiniLM-L6-v2 dimensions
 DISTANCE_METRIC = Distance.COSINE
 
@@ -34,10 +35,6 @@ class VectorStoreMetrics:
 
 class QdrantVectorStore:
     """Qdrant vector store with performance monitoring."""
-    def __init__(self, host: Optional[str] = None, port: Optional[int] = None, storage_path: Optional[str] = None, collection_name: Optional[str] = None):
-        logger.info(f"Qdrant host: {host}, port: {port}")
-        if host is None:
-            raise ValueError("QDRANT_HOST environment variable must be set. Current value: None")
     def __init__(self, host: Optional[str] = None, port: Optional[int] = None, storage_path: Optional[str] = None, collection_name: Optional[str] = None):
         """
         Initialize Qdrant client.
@@ -64,6 +61,14 @@ class QdrantVectorStore:
             logger.info(f"Connected to Qdrant server at {host}:{port}")
         
         self.collection_name = collection_name or COLLECTION_NAME
+        # Hard guard: prevent P2 from writing to a P1 collection (or other misconfigurations)
+        try:
+            name_lower = self.collection_name.lower()
+            if "p1" in name_lower:
+                raise ValueError(f"Invalid collection for P2: '{self.collection_name}'. Expected a P2-specific name (e.g., '{COLLECTION_NAME}').")
+        except Exception as e:
+            logger.error(str(e))
+            raise
         logger.info(f"Using collection: {self.collection_name}")
         self._ensure_collection()
     
@@ -106,12 +111,12 @@ class QdrantVectorStore:
         except Exception as e:
             logger.warning(f"Could not create payload indexes: {e}")
     
-    def upsert_chunks(self, chunks: List[FunctionChunk], embeddings: np.ndarray) -> bool:
+    def upsert_chunks(self, chunks: List[FunctionChunk | ClassChunk], embeddings: np.ndarray) -> bool:
         """
-        Upsert function chunks with their embeddings into Qdrant.
+        Upsert function and class chunks with their embeddings into Qdrant.
         
         Args:
-            chunks: List of FunctionChunk objects
+            chunks: List of FunctionChunk and/or ClassChunk objects
             embeddings: Corresponding embeddings array
             
         Returns:
@@ -124,12 +129,22 @@ class QdrantVectorStore:
             # Create points for upsert
             points = []
             for i, chunk in enumerate(chunks):
-                # Generate deterministic positive ID using abs() to ensure unsigned integer so qdrant can index it properly.
-                chunk_id = abs(hash(f"{chunk.file_path}:{chunk.function_name}:{chunk.start_line}"))
+                # Generate deterministic positive ID
+                # Use class_name for classes, function_name for functions
+                if isinstance(chunk, ClassChunk):
+                    identifier = f"{chunk.file_path}:{chunk.class_name}:{chunk.start_line}"
+                else:
+                    identifier = f"{chunk.file_path}:{chunk.function_name}:{chunk.start_line}"
+                    
+                chunk_id = abs(hash(identifier))
+                payload = chunk.to_payload()
+                # Tag payload with prototype for easy verification/debugging
+                payload["prototype"] = PROTOTYPE_ID
+
                 point = PointStruct(
                     id=chunk_id,
                     vector=embeddings[i].tolist(),
-                    payload=chunk.to_payload()
+                    payload=payload
                 )
                 points.append(point)
             
@@ -141,7 +156,10 @@ class QdrantVectorStore:
             )
             upsert_time = time.time() - start_time
             
-            logger.info(f"Upserted {len(points)} function chunks in {upsert_time:.3f}s")
+            # Count chunk types for logging
+            class_count = sum(1 for c in chunks if isinstance(c, ClassChunk))
+            func_count = sum(1 for c in chunks if isinstance(c, FunctionChunk))
+            logger.info(f"Upserted {len(points)} chunks ({class_count} classes, {func_count} functions) in {upsert_time:.3f}s")
             return True
             
         except Exception as e:
@@ -398,19 +416,17 @@ class QdrantVectorStore:
             return []
 
 
-def create_vector_store(host: str = "localhost", port: int = 6333, storage_path: Optional[str] = None, collection_name: Optional[str] = None) -> QdrantVectorStore:
+def create_vector_store(host: Optional[str] = None, port: Optional[int] = None, storage_path: Optional[str] = None, collection_name: Optional[str] = None) -> QdrantVectorStore:
     """
     Create a new QdrantVectorStore instance.
     
     Args:
-        host: Qdrant server host (default: uses QDRANT_HOST env or 'qdrant' for Docker)
-        port: Qdrant server port (default: 6333 for Docker)
+        host: Qdrant server host. If None, uses QDRANT_HOST env (recommended)
+        port: Qdrant server port. If None, uses QDRANT_PORT env (recommended)
         storage_path: Local file storage path. If provided, uses local storage instead of Docker.
         collection_name: Custom collection name. If None, uses default.
     
     Returns:
         QdrantVectorStore instance configured for Docker or local storage
     """
-    import os
-    resolved_host = os.environ.get("QDRANT_HOST", "qdrant") if host == "localhost" else host
-    return QdrantVectorStore(host=resolved_host, port=port, storage_path=storage_path, collection_name=collection_name)
+    return QdrantVectorStore(host=host, port=port, storage_path=storage_path, collection_name=collection_name)

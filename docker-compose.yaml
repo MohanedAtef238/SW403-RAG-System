@@ -1,22 +1,43 @@
 services:
+  # Base image with all shared dependencies
   base:
     build:
       context: .
       dockerfile: Dockerfile
     image: sw403-base
     container_name: sw403-base
+    # This container only exists to build the base image
+    profiles:
+      - build-base
     networks:
       - sw403-net
-    command: ["sleep", "infinity"]
 
-  qdrant:
+  # Qdrant instance dedicated to P1
+  qdrant-p1:
     image: qdrant/qdrant:latest
-    container_name: qdrant
+    container_name: qdrant-p1
     ports:
-      - "6333:6333"   # REST
+      - "6333:6333"   # REST for P1
       - "6334:6334"   # gRPC for future use
     volumes:
-      - qdrant_storage:/qdrant/storage
+      - qdrant_storage_p1:/qdrant/storage
+    networks:
+      - sw403-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/collections || exit 1"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+
+  # Qdrant instance dedicated to P2
+  qdrant-p2:
+    image: qdrant/qdrant:latest
+    container_name: qdrant-p2
+    ports:
+      - "7333:6333"   # REST for P2 (host 7333 -> container 6333)
+      - "7334:6334"   # gRPC for future use
+    volumes:
+      - qdrant_storage_p2:/qdrant/storage
     networks:
       - sw403-net
     healthcheck:
@@ -29,37 +50,89 @@ services:
     build:
       context: ./P1
       dockerfile: Dockerfile
+    image: sw403-p1
     container_name: sw403-p1
     depends_on:
-      - qdrant
-      - base
+      - qdrant-p1
     environment:
-      QDRANT_HOST: qdrant
-      QDRANT_PORT: 6333
+      # Qdrant connection
+      QDRANT_HOST: ${P1_QDRANT_HOST:-qdrant-p1}
+      QDRANT_PORT: ${P1_QDRANT_PORT:-6333}
+      COLLECTION_NAME: ${P1_COLLECTION_NAME:-functions_p1}
+      
+      # Embedding model configuration
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+      EMBEDDING_BATCH_SIZE: ${EMBEDDING_BATCH_SIZE:-32}
+      EMBEDDING_MAX_TOKENS: ${EMBEDDING_MAX_TOKENS:-400}
+      
+      # Search configuration
+      DEFAULT_TOP_K: ${DEFAULT_TOP_K:-5}
+      DEFAULT_SIMILARITY_THRESHOLD: ${DEFAULT_SIMILARITY_THRESHOLD:-0.0}
+      
+      # Performance
+      USE_GPU: ${USE_GPU:-false}
+      CPU_CORES: ${CPU_CORES:-0}
+      COLLECT_METRICS: ${COLLECT_METRICS:-true}
+      
+      # Chunking strategy
+      CHUNKING_STRATEGY: ${P1_CHUNKING_STRATEGY:-simple_ast}
+      
+      # Logging
+      ENABLE_DEBUG_LOGGING: ${ENABLE_DEBUG_LOGGING:-false}
     volumes:
       - ./shared_data:/app/shared_data
     ports:
-      - "8001:8001"
+      - "${P1_API_PORT:-8001}:8001"
     networks:
       - sw403-net
+    deploy:
+      resources:
+        limits:
+          memory: ${MEMORY_LIMIT:-4g}
 
   p2:
     build:
       context: ./P2
       dockerfile: Dockerfile
+    image: sw403-p2
     container_name: sw403-p2
     depends_on:
-      - qdrant
-      - base
+      - qdrant-p2
     environment:
-      QDRANT_HOST: qdrant
-      QDRANT_PORT: 6333
+      # Qdrant connection
+      QDRANT_HOST: ${P2_QDRANT_HOST:-qdrant-p2}
+      QDRANT_PORT: ${P2_QDRANT_PORT:-6333}
+      COLLECTION_NAME: ${P2_COLLECTION_NAME:-functions_p2}
+      
+      # Embedding model configuration
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+      EMBEDDING_BATCH_SIZE: ${EMBEDDING_BATCH_SIZE:-32}
+      EMBEDDING_MAX_TOKENS: ${EMBEDDING_MAX_TOKENS:-400}
+      
+      # Search configuration
+      DEFAULT_TOP_K: ${DEFAULT_TOP_K:-5}
+      DEFAULT_SIMILARITY_THRESHOLD: ${DEFAULT_SIMILARITY_THRESHOLD:-0.0}
+      
+      # Performance
+      USE_GPU: ${USE_GPU:-false}
+      CPU_CORES: ${CPU_CORES:-0}
+      COLLECT_METRICS: ${COLLECT_METRICS:-true}
+      
+      # Chunking strategy
+      CHUNKING_STRATEGY: ${P2_CHUNKING_STRATEGY:-ast_semantic}
+      
+      # Logging
+      ENABLE_DEBUG_LOGGING: ${ENABLE_DEBUG_LOGGING:-false}
     volumes:
       - ./shared_data:/app/shared_data
     ports:
-      - "8002:8002"
+      - "${P2_API_PORT:-8002}:8002"
     networks:
       - sw403-net
+    deploy:
+      resources:
+        limits:
+          memory: ${MEMORY_LIMIT:-4g}
   p3:
       
     build:
@@ -88,4 +161,5 @@ networks:
   sw403-net:
 
 volumes:
-  qdrant_storage:
+  qdrant_storage_p1:
+  qdrant_storage_p2:

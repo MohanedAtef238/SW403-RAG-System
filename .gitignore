@@ -9,6 +9,13 @@ wheels/
 # Virtual environments
 .venv
 
+# Environment configuration (keep .env.example)
+.env
+
+# Results and outputs
+results/
+qdrant_storage/
+
 # Ignore external test projects
 shared_data/project1/
 shared_data/project2/
