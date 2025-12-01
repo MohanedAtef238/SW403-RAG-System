@@ -2,7 +2,7 @@ FROM sw403-base
 
 WORKDIR /app
 
-COPY src/ ./src/
+COPY P3/src/ ./src/
 COPY main.py ./main.py
 
 EXPOSE 8003

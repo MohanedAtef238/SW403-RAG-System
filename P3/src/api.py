@@ -12,6 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
 
+from P3.src.rag import query_system
+
 from .models import initialize_model, encode_texts, encode_single_text, get_model_info
 from .chunking import create_chunker, FunctionChunk, CodeChunker
 from .vector_store import create_vector_store, QdrantVectorStore
@@ -274,36 +276,7 @@ async def query_code(request: QueryRequest):
     try:
         # Generate query embedding
         logger.info(f"Processing query: '{request.query}'")
-        query_embedding, model_metrics = encode_single_text(request.query)
-        
-        # Search vector database
-        if not vector_store:
-            raise HTTPException(status_code=500, detail="Vector store not initialized")
-        
-        search_results, vector_metrics = vector_store.search_similar(
-            query_embedding=query_embedding,
-            top_k=request.top_k,
-            similarity_threshold=request.similarity_threshold,
-            file_filter=request.file_filter,
-            function_name_filter=request.function_name_filter
-        )
-        
-        # Format results
-        formatted_results = []
-        for result in search_results:
-            payload = result["payload"]
-            function_result = FunctionResult(
-                function_name=payload["function_name"],
-                function_signature=payload["function_signature"],
-                file_path=payload["file_path"],
-                relative_path=payload["relative_path"],
-                line_numbers=payload["line_numbers"],
-                original_chunk_text=payload["original_chunk_text"],
-                docstring=payload.get("metadata", {}).get("docstring"),
-                similarity_score=result["similarity_score"],
-                metadata=payload.get("metadata", {})
-            )
-            formatted_results.append(function_result)
+        res = query_system(request.query)
         
         # Calculate total request time
         total_request_time = time.time() - request_start_time
@@ -311,28 +284,17 @@ async def query_code(request: QueryRequest):
         # Compile comprehensive metrics
         metrics = {
             "request_latency_seconds": total_request_time,
-            "embedding_generation_time_seconds": model_metrics.embedding_time,
-            "qdrant_retrieval_time_seconds": vector_metrics.retrieval_time,
-            "model_memory_usage_mb": model_metrics.memory_usage,
-            "collection_size": vector_metrics.collection_size,
-            "search_parameters": vector_metrics.search_params,
             "query_length": len(request.query),
-            "results_returned": len(formatted_results)
+            "results": len(res)
         }
         
         # Log detailed metrics
-        logger.info(
-            f"Query completed: {len(formatted_results)} results in {total_request_time:.3f}s "
-            f"(embedding: {model_metrics.embedding_time:.3f}s, "
-            f"search: {vector_metrics.retrieval_time:.3f}s, "
-            f"memory: {model_metrics.memory_usage:.1f}MB)"
-        )
+       
         
         return QueryResponse(
             success=True,
             query=request.query,
-            results=formatted_results,
-            total_results=len(formatted_results),
+            results=res,
             metrics=metrics
         )
         

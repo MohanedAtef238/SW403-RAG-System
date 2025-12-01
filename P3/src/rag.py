@@ -15,7 +15,7 @@ vector_store = QdrantVectorStore_lc(
     client=generated_store.client, collection_name=COLLECTION_NAME
 )
 
-model = ChatOpenAI(base_url=os.environ["base_server"], model="gpt-4.1")
+model = ChatOpenAI(base_url=os.environ["base_server"], model="gpt-4.1", streaming=False)
 
 
 @tool(response_format="content_and_artifact")
@@ -38,13 +38,11 @@ prompt = (
 )
 agent = create_agent(model, tools, system_prompt=prompt)
 
-print("dddsssd")
+
+def query_system(query):
+    res = agent.invoke({"messages": [{"role": "user", "content": query}]})
+    return res
+
+
 if __name__ == "__main__":
-    query = (
-    "What is does the function function_with_params take as an input ? "
-    )
-    for event in agent.stream(
-        {"messages": [{"role": "user", "content": query}]},
-        stream_mode="values",
-    ):
-        event["messages"][-1].pretty_print()
+    query = "What is does the function function_with_params take as an input ? "

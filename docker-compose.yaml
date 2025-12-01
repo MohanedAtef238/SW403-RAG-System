@@ -152,6 +152,7 @@ services:
   p3:
     build:
       context: ./P3
+      
       dockerfile: Dockerfile
     develop:
       watch:
