@@ -148,6 +148,7 @@ services:
       - qdrant
       - base
     environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333
     volumes:
