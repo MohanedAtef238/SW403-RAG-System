@@ -60,6 +60,29 @@ services:
       - "8002:8002"
     networks:
       - sw403-net
+  p3:
+      
+    build:
+      context: ./P3
+      dockerfile: Dockerfile
+    develop:
+      watch:
+        - action: sync
+          path: ./P3
+          target: /app/P3
+    container_name: sw403-p3
+    depends_on:
+      - qdrant
+      - base
+    environment:
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+    volumes:
+      - ./shared_data:/app/shared_data
+    ports:
+      - "8003:8003"
+    networks:
+      - sw403-net
 
 networks:
   sw403-net:
