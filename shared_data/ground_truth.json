@@ -1,0 +1,301 @@
+{
+  "metadata": {
+    "version": "1.2",
+    "created": "2025-12-01",
+    "updated": "2025-12-01",
+    "description": "Ground truth evaluation dataset for SW403 RAG system comparing P1 (function-only) vs P2 (functions + classes). P2 now indexes both classes and functions using AST parsing.",
+    "projects": ["project1 (maze pathfinding algorithms)", "project2 (Valorant esports data processing)"],
+    "total_queries": 30,
+    "indexing_note": "P1 indexes FUNCTIONS/METHODS only. P2 indexes BOTH classes AND functions/methods. This allows P2 to directly answer class-related queries.",
+    "p2_advantage": "P2's AST-based chunking extracts class definitions with inheritance, methods, decorators, and docstrings - providing superior semantic understanding.",
+    "categories": {
+      "simple_lookup": "5 class name queries + 5 function name queries (10 queries total)",
+      "local_context": "Function parameters, return types, decorators, local logic (10 queries)",
+      "global_relational": "Cross-function dependencies, data flows, inheritance chains (10 queries)"
+    }
+  },
+  "queries": [
+    {
+      "id": 1,
+      "query": "Find the BFSAgent class",
+      "category": "simple_lookup",
+      "expected_function": "BFSAgent",
+      "expected_file": "shared_data/project1/BFSAgent.py",
+      "reasoning": "Direct class name match - P2 should index this as a class, P1 will find bfs method",
+      "difficulty": "easy",
+      "p2_expected": "BFSAgent",
+      "p1_expected": "bfs"
+    },
+    {
+      "id": 2,
+      "query": "Where is the Maze class defined?",
+      "category": "simple_lookup",
+      "expected_function": "Maze",
+      "expected_file": "shared_data/project1/maze.py",
+      "reasoning": "Direct class name query - P2 indexes classes, P1 will find __init__ method",
+      "difficulty": "easy",
+      "p2_expected": "Maze",
+      "p1_expected": "__init__"
+    },
+    {
+      "id": 3,
+      "query": "Find the DFSAgent class",
+      "category": "simple_lookup",
+      "expected_function": "DFSAgent",
+      "expected_file": "shared_data/project1/DFSAgent.py",
+      "reasoning": "Direct class name match - demonstrates P2's class-level indexing",
+      "difficulty": "easy",
+      "p2_expected": "DFSAgent",
+      "p1_expected": "dfs"
+    },
+    {
+      "id": 4,
+      "query": "Find the AStarAgent class",
+      "category": "simple_lookup",
+      "expected_function": "AStarAgent",
+      "expected_file": "shared_data/project1/AStarAgent.py",
+      "reasoning": "Direct class name match - P2 advantage with class indexing",
+      "difficulty": "easy",
+      "p2_expected": "AStarAgent",
+      "p1_expected": "AStar"
+    },
+    {
+      "id": 5,
+      "query": "Where is the QBot class?",
+      "category": "simple_lookup",
+      "expected_function": "QBot",
+      "expected_file": "shared_data/project1/QBot.py",
+      "reasoning": "Direct class name match - P2 can index this as a class definition",
+      "difficulty": "easy",
+      "p2_expected": "QBot",
+      "p1_expected": "__init__"
+    },
+    {
+      "id": 6,
+      "query": "Find the heuristic function",
+      "category": "simple_lookup",
+      "expected_function": "heuristic",
+      "expected_file": "shared_data/project1/SmartAlgo.py",
+      "reasoning": "Direct function name match - both P1 and P2 should find this",
+      "difficulty": "easy"
+    },
+    {
+      "id": 7,
+      "query": "Find the function that gets game mappings",
+      "category": "simple_lookup",
+      "expected_function": "get_game_mappings",
+      "expected_file": "shared_data/project2/processing/parsers.py",
+      "reasoning": "Semantic match for function - both systems should find this",
+      "difficulty": "easy"
+    },
+    {
+      "id": 8,
+      "query": "Find the function that processes game events",
+      "category": "simple_lookup",
+      "expected_function": "get_game_events",
+      "expected_file": "shared_data/project2/processing/parsers.py",
+      "reasoning": "Semantic match - both systems should find this function",
+      "difficulty": "easy"
+    },
+    {
+      "id": 9,
+      "query": "Find the bfs function",
+      "category": "simple_lookup",
+      "expected_function": "bfs",
+      "expected_file": "shared_data/project1/BFSAgent.py",
+      "reasoning": "Direct function name match - baseline for both systems",
+      "difficulty": "easy"
+    },
+    {
+      "id": 10,
+      "query": "Find the AStar function",
+      "category": "simple_lookup",
+      "expected_function": "AStar",
+      "expected_file": "shared_data/project1/AStarAgent.py",
+      "reasoning": "Direct function name match - both systems should succeed",
+      "difficulty": "easy"
+    },
+    {
+      "id": 11,
+      "query": "What parameters does the get_game_mappings function accept?",
+      "category": "local_context",
+      "expected_function": "get_game_mappings",
+      "expected_file": "shared_data/project2/processing/parsers.py",
+      "reasoning": "Tests if metadata includes function signature (mapping_file: str)",
+      "difficulty": "medium"
+    },
+    {
+      "id": 12,
+      "query": "What does the heuristic function return?",
+      "category": "local_context",
+      "expected_function": "heuristic",
+      "expected_file": "shared_data/project1/SmartAlgo.py",
+      "reasoning": "Tests if return type or docstring info is captured",
+      "difficulty": "medium"
+    },
+    {
+      "id": 13,
+      "query": "Which function validates maze positions?",
+      "category": "local_context",
+      "expected_function": "IsValidPos",
+      "expected_file": "shared_data/project1/maze.py",
+      "reasoning": "Semantic match for 'validates positions' → IsValidPos",
+      "difficulty": "medium"
+    },
+    {
+      "id": 14,
+      "query": "What type does get_game_events return?",
+      "category": "local_context",
+      "expected_function": "get_game_events",
+      "expected_file": "shared_data/project2/processing/parsers.py",
+      "reasoning": "Tests type annotation capture (List[GameEvent])",
+      "difficulty": "medium"
+    },
+    {
+      "id": 15,
+      "query": "Which function uses a priority queue?",
+      "category": "local_context",
+      "expected_function": "AStar",
+      "expected_file": "shared_data/project1/AStarAgent.py",
+      "reasoning": "Tests if local variables/imports are in context (PriorityQueue)",
+      "difficulty": "hard"
+    },
+    {
+      "id": 16,
+      "query": "What does the PathCost method calculate?",
+      "category": "local_context",
+      "expected_function": "PathCost",
+      "expected_file": "shared_data/project1/maze.py",
+      "reasoning": "Semantic understanding of method purpose from name/docstring",
+      "difficulty": "medium"
+    },
+    {
+      "id": 17,
+      "query": "Which function handles damage events?",
+      "category": "local_context",
+      "expected_function": "get_game_stats",
+      "expected_file": "shared_data/project2/processing/parsers.py",
+      "reasoning": "Tests if match case for 'damageEvent' is captured in context",
+      "difficulty": "hard"
+    },
+    {
+      "id": 18,
+      "query": "What parameters does the AStar method need?",
+      "category": "local_context",
+      "expected_function": "AStar",
+      "expected_file": "shared_data/project1/AStarAgent.py",
+      "reasoning": "Tests parameter signature capture (self only)",
+      "difficulty": "medium"
+    },
+    {
+      "id": 19,
+      "query": "Which function joins tournament and team data?",
+      "category": "local_context",
+      "expected_function": "get_fixture_data",
+      "expected_file": "shared_data/project2/processing/parsers.py",
+      "reasoning": "Semantic match for 'joins' → get_fixture_data with join operations",
+      "difficulty": "medium"
+    },
+    {
+      "id": 20,
+      "query": "What does the PrintPath method do?",
+      "category": "local_context",
+      "expected_function": "PrintPath",
+      "expected_file": "shared_data/project1/maze.py",
+      "reasoning": "Tests if method purpose is clear from name/implementation",
+      "difficulty": "easy"
+    },
+    {
+      "id": 21,
+      "query": "Which classes inherit from PapaAgent?",
+      "category": "global_relational",
+      "expected_function": "__init__",
+      "expected_file": "shared_data/project1/PapaAgent.py",
+      "reasoning": "PapaAgent base class constructor - tests inheritance tracking (BFSAgent, DFSAgent, AStarAgent, etc. inherit from it)",
+      "difficulty": "very_hard",
+      "note": "Function-level indexing cannot track class inheritance - this query tests system limitations"
+    },
+    {
+      "id": 22,
+      "query": "Trace the data flow from get_game_mappings to process_game_file",
+      "category": "global_relational",
+      "expected_function": "process_game_file",
+      "expected_file": "shared_data/project2/processing/parsers.py",
+      "reasoning": "Tests if cross-function dependencies are captured (mapping param)",
+      "difficulty": "very_hard"
+    },
+    {
+      "id": 23,
+      "query": "Which functions call the IsValidPos method?",
+      "category": "global_relational",
+      "expected_function": "IsValidPos",
+      "expected_file": "shared_data/project1/maze.py",
+      "reasoning": "Tests reverse dependency tracking - used by BFS, DFS, AStar, etc.",
+      "difficulty": "very_hard"
+    },
+    {
+      "id": 24,
+      "query": "What is the relationship between SmartAlgo and AStarAgent?",
+      "category": "global_relational",
+      "expected_function": "heuristic",
+      "expected_file": "shared_data/project1/SmartAlgo.py",
+      "reasoning": "heuristic() method in SmartAlgo class - tests inheritance chain understanding (AStarAgent extends SmartAlgo and uses its heuristic)",
+      "difficulty": "very_hard",
+      "note": "Function-level indexing cannot directly track class inheritance relationships"
+    },
+    {
+      "id": 25,
+      "query": "Which function calls ManhattanHeuristic?",
+      "category": "global_relational",
+      "expected_function": "heuristic",
+      "expected_file": "shared_data/project1/SmartAlgo.py",
+      "reasoning": "Tests if method calls to ManhattanHeuristic are captured in function context",
+      "difficulty": "hard"
+    },
+    {
+      "id": 26,
+      "query": "Which functions process JSON files?",
+      "category": "global_relational",
+      "expected_function": "get_game_mappings",
+      "expected_file": "shared_data/project2/processing/parsers.py",
+      "reasoning": "Tests pattern matching across multiple functions (json.load usage)",
+      "difficulty": "hard"
+    },
+    {
+      "id": 27,
+      "query": "Trace the full pathfinding workflow from BFSAgent",
+      "category": "global_relational",
+      "expected_function": "bfs",
+      "expected_file": "shared_data/project1/BFSAgent.py",
+      "reasoning": "Tests understanding of algorithm flow through queue, visited, target",
+      "difficulty": "very_hard"
+    },
+    {
+      "id": 28,
+      "query": "Which functions use Polars DataFrames?",
+      "category": "global_relational",
+      "expected_function": "get_game_stats",
+      "expected_file": "shared_data/project2/processing/parsers.py",
+      "reasoning": "Tests cross-function pattern matching (pl.DataFrame return types)",
+      "difficulty": "hard"
+    },
+    {
+      "id": 29,
+      "query": "Which class initializes the maze instance for agent classes?",
+      "category": "global_relational",
+      "expected_function": "__init__",
+      "expected_file": "shared_data/project1/PapaAgent.py",
+      "reasoning": "PapaAgent.__init__() initializes self.maze for all agent subclasses",
+      "difficulty": "hard"
+    },
+    {
+      "id": 30,
+      "query": "What is the complete data processing pipeline from raw events to fixture data?",
+      "category": "global_relational",
+      "expected_function": "get_fixture_data",
+      "expected_file": "shared_data/project2/processing/parsers.py",
+      "reasoning": "Tests multi-function workflow understanding (leagues → tournaments → teams → players)",
+      "difficulty": "very_hard"
+    }
+  ]
+}
