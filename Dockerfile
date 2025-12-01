@@ -5,12 +5,13 @@ RUN pip install --no-cache-dir uv
 
 WORKDIR /app
 
-# Copy dependency files
+# Copy only dependency files first (for better caching)
 COPY pyproject.toml .
 COPY uv.lock .
 
-# Install root dependencies
-RUN uv sync --no-dev
+# Install dependencies in a separate layer (cached unless dependencies change)
+# Use --frozen to avoid re-locking and speed up builds
+RUN uv sync --frozen --no-dev
 
-# Copy full project (but not P1/P2 code)
-COPY . .
+# Note: P1/P2 containers will copy their own code
+# This base image contains only shared dependencies
