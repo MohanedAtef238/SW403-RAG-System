@@ -16,10 +16,11 @@ import torch
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Global model configuration
-MODEL_NAME = "all-MiniLM-L6-v2"
-BATCH_SIZE = 32  # Configurable batch size for fine-tuning
-MAX_TOKENS = 400  # Token limit for function text
+# Global model configuration (read from environment variables)
+MODEL_NAME = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+BATCH_SIZE = int(os.getenv("EMBEDDING_BATCH_SIZE", "32"))
+MAX_TOKENS = int(os.getenv("EMBEDDING_MAX_TOKENS", "400"))
+USE_GPU = os.getenv("USE_GPU", "false").lower() == "true"
 
 # Global model instance (cached on startup)
 _model: Optional[SentenceTransformer] = None
@@ -56,12 +57,12 @@ def initialize_model() -> None:
     start_time = time.time()
     _model = SentenceTransformer(MODEL_NAME)
     
-    # Move to GPU if available
-    if torch.cuda.is_available():
+    # Move to GPU if available and enabled
+    if USE_GPU and torch.cuda.is_available():
         _model = _model.to('cuda')
         logger.info("Model moved to GPU")
     else:
-        logger.info("Model running on CPU")
+        logger.info(f"Model running on CPU (USE_GPU={USE_GPU}, CUDA available={torch.cuda.is_available()})")
     
     # Warm up the model with a dummy inference
     _model.encode(["def dummy_function(): pass"], convert_to_numpy=True)

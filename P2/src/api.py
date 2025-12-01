@@ -228,9 +228,9 @@ async def ingest_code(request: IngestRequest):
         if not chunks:
             raise HTTPException(status_code=400, detail="No functions found in the provided code")
         
-        # Generate embeddings
-        logger.info(f"Generating embeddings for {len(chunks)} functions...")
-        chunk_texts = [chunk.original_chunk_text for chunk in chunks]
+        # Generate embeddings with enhanced semantic context
+        logger.info(f"Generating embeddings for {len(chunks)} functions with AST metadata...")
+        chunk_texts = [chunk.get_enhanced_embedding_text() for chunk in chunks]
         embeddings, model_metrics = encode_texts(chunk_texts)
         
         # Store in vector database
@@ -292,9 +292,23 @@ async def query_code(request: QueryRequest):
         formatted_results = []
         for result in search_results:
             payload = result["payload"]
+            
+            # Handle both function and class chunks
+            chunk_type = payload.get("chunk_type", "function")
+            if chunk_type == "class":
+                # For class chunks, use class_name as signature
+                signature = f"class {payload['function_name']}"
+                if payload.get("metadata", {}).get("base_classes"):
+                    bases = ", ".join(payload["metadata"]["base_classes"])
+                    signature += f"({bases})"
+                signature += ":"
+            else:
+                # For function chunks, use the actual function_signature
+                signature = payload.get("function_signature", "")
+            
             function_result = FunctionResult(
                 function_name=payload["function_name"],
-                function_signature=payload["function_signature"],
+                function_signature=signature,
                 file_path=payload["file_path"],
                 relative_path=payload["relative_path"],
                 line_numbers=payload["line_numbers"],
@@ -413,12 +427,26 @@ async def cli_search(request: CLISearchRequest):
         search_results = []
         for result in results:
             payload = result["payload"]
+            
+            # Handle both function and class chunks
+            chunk_type = payload.get("chunk_type", "function")
+            if chunk_type == "class":
+                # For class chunks, show class definition
+                code_snippet = f"class {payload['function_name']}"
+                if payload.get("metadata", {}).get("base_classes"):
+                    bases = ", ".join(payload["metadata"]["base_classes"])
+                    code_snippet += f"({bases})"
+            else:
+                # For function chunks, show signature
+                signature = payload.get("function_signature", "")
+                code_snippet = signature[:200] + "..." if len(signature) > 200 else signature
+            
             search_results.append(CLISearchResult(
                 function_name=payload["function_name"],
                 file_path=payload["file_path"],
                 line_range=f"{payload['line_numbers']['start']}-{payload['line_numbers']['end']}",
                 similarity=result["similarity_score"],
-                code_snippet=payload["function_signature"][:200] + "..." if len(payload["function_signature"]) > 200 else payload["function_signature"]
+                code_snippet=code_snippet
             ))
         
         search_time = time.time() - start_time
@@ -502,7 +530,7 @@ async def cli_ingest(request: CLIIngestRequest):
         
         # Generate embeddings
         start_time = time.time()
-        chunk_texts = [chunk.original_chunk_text for chunk in all_chunks]
+        chunk_texts = [chunk.get_enhanced_embedding_text() for chunk in all_chunks]
         embeddings, metrics = encode_texts(chunk_texts)
         embedding_time = time.time() - start_time
         
