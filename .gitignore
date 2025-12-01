@@ -8,3 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Ignore external test projects
+shared_data/project1/
+shared_data/project2/
+/.github
