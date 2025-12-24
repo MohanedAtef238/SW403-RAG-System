@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
 
-from P3.src.rag import query_system
+from .rag import query_system
 
 from .models import initialize_model, encode_texts, encode_single_text, get_model_info
 from .chunking import create_chunker, FunctionChunk, CodeChunker

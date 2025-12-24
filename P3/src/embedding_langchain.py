@@ -10,8 +10,8 @@ class MiniLMEmbeddings(Embeddings):
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """Embed a list of texts."""
-        return self.model.encode(texts, convert_to_numpy=False).tolist()
+        return self.model.encode(texts).tolist()
 
     def embed_query(self, text: str) -> List[float]:
         """Embed a single query string."""
-        return self.model.encode(text, convert_to_numpy=False).tolist()
+        return self.model.encode(text).tolist()

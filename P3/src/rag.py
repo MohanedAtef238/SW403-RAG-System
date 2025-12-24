@@ -12,7 +12,7 @@ embeddings = MiniLMEmbeddings()
 
 
 vector_store = QdrantVectorStore_lc(
-    client=generated_store.client, collection_name=COLLECTION_NAME
+    client=generated_store.client, collection_name=COLLECTION_NAME, embedding=embeddings
 )
 
 model = ChatOpenAI(base_url=os.environ["base_server"], model="gpt-4.1", streaming=False)
